@@ -47,6 +47,8 @@ if(fine&&!reduce){
 /* hero: chaos (left) -> order (right) */
 const cv=d.getElementById('flow'),ctx=cv.getContext('2d');
 let W,H,P=[],dpr=1,mx=-999,my=-999,running=false,raf=0;
+/* Jei sistemoje įjungtas sumažintas judesys, animacija pagal nutylėjimą išjungta; lankytojas gali ją įjungti mygtuku. */
+let motionOn=!reduce;
 const LANES=7;
 function init(){
   dpr=Math.min(devicePixelRatio||1,2);
@@ -67,7 +69,7 @@ function draw(t){
   ctx.clearRect(0,0,W,H);
   const pts=[];
   for(const p of P){
-    if(!reduce){p.x+=p.s;if(p.x>W+10)p.x=-10}
+    if(motionOn){p.x+=p.s;if(p.x>W+10)p.x=-10}
     const k=ease(Math.min(1,Math.max(0,(p.x/W-.28)/.5)));
     const chaos=1-k,y0=laneY(p.lane);
     let x=p.x+Math.cos(time*p.f+p.a)*p.amp*.5*chaos;
@@ -96,7 +98,7 @@ function draw(t){
   }
 }
 function loop(t){draw(t);raf=requestAnimationFrame(loop)}
-function start(){if(running||reduce)return;running=true;raf=requestAnimationFrame(loop)}
+function start(){if(running||!motionOn)return;running=true;raf=requestAnimationFrame(loop)}
 function stop(){running=false;cancelAnimationFrame(raf)}
 
 const hero=d.querySelector('.hero');
@@ -109,4 +111,16 @@ let inView=true;
 new IntersectionObserver(([e])=>{inView=e.isIntersecting;inView&&!d.hidden?start():stop()}).observe(hero);
 d.addEventListener('visibilitychange',()=>{d.hidden?stop():(inView&&start())});
 start();
+
+/* mygtukas rodomas tik tada, kai naršyklė praneša apie sumažintą judesį */
+const tg=d.getElementById('motion');
+if(tg&&reduce){
+  tg.hidden=false;
+  tg.addEventListener('click',()=>{
+    motionOn=!motionOn;
+    tg.setAttribute('aria-pressed',motionOn);
+    tg.textContent=motionOn?'Sustabdyti animaciją':'Įjungti animaciją';
+    motionOn?(inView&&start()):(stop(),draw(performance.now()));
+  });
+}
 })();
